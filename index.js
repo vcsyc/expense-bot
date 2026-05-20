@@ -1,19 +1,16 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const { google } = require('googleapis');
-const axios = require('axios');
 
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 
 const auth = new google.auth.GoogleAuth({
   credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS),
-  scopes: [
-    'https://www.googleapis.com/auth/spreadsheets',
-    'https://www.googleapis.com/auth/drive',
-  ],
+scopes: [
+  'https://www.googleapis.com/auth/spreadsheets',
+],
 });
 const sheets = google.sheets({ version: 'v4', auth });
-const drive  = google.drive({ version: 'v3', auth });
 
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 const sessions = {};
@@ -223,26 +220,20 @@ bot.on('callback_query', async (query) => {
 // Photo upload
 async function handlePhoto(chatId, msg, session) {
   try {
-    bot.sendMessage(chatId, '⏳ ფოტო იტვირთება...');
-    const fileId  = msg.photo[msg.photo.length - 1].file_id;
-    const fileUrl = await bot.getFileLink(fileId);
-    const response = await axios.get(fileUrl, { responseType: 'stream' });
+    bot.sendMessage(chatId, '⏳ ფოტო მუშავდება...');
 
-    const driveRes = await drive.files.create({
-      requestBody: {
-        name: 'receipt_' + Date.now() + '.jpg',
-        mimeType: 'image/jpeg',
-        parents: ['16-wuG2NdTZtNPWEtgXZc4XTjpCpVCJ93'],
-      },
-      media: { mimeType: 'image/jpeg', body: response.data },
-    });
+    const fileId = msg.photo[msg.photo.length - 1].file_id;
+    const file = await bot.getFile(fileId);
 
-    session.photoLink = 'https://drive.google.com/file/d/' + driveRes.data.id + '/view';
+    session.photoLink =
+      `https://api.telegram.org/file/bot${process.env.TELEGRAM_TOKEN}/${file.file_path}`;
+
   } catch (err) {
     console.error('Photo error:', err);
     session.photoLink = '';
-    bot.sendMessage(chatId, '⚠️ ფოტოს ატვირთვა ვერ მოხერხდა, ვინახავთ ფოტოს გარეშე.');
+    bot.sendMessage(chatId, '⚠️ ფოტოს ლინკის მიღება ვერ მოხერხდა, ვინახავთ ფოტოს გარეშე.');
   }
+
   await saveExpense(chatId, session);
 }
 

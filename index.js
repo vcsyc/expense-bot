@@ -229,13 +229,14 @@ async function handlePhoto(chatId, msg, session) {
     const response = await axios.get(fileUrl, { responseType: 'stream' });
 
     const driveRes = await drive.files.create({
-      requestBody: { name: 'receipt_' + Date.now() + '.jpg', mimeType: 'image/jpeg' },
+      requestBody: {
+        name: 'receipt_' + Date.now() + '.jpg',
+        mimeType: 'image/jpeg',
+        parents: ['16-wuG2NdTZtNPWEtgXZc4XTjpCpVCJ93'],
+      },
       media: { mimeType: 'image/jpeg', body: response.data },
     });
-    await drive.permissions.create({
-      fileId: driveRes.data.id,
-      requestBody: { role: 'reader', type: 'anyone' },
-    });
+
     session.photoLink = 'https://drive.google.com/file/d/' + driveRes.data.id + '/view';
   } catch (err) {
     console.error('Photo error:', err);
